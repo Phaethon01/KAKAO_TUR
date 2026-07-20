@@ -1,0 +1,19 @@
+/* KAKAO-TUR — base resets, shared across the system */
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  color: var(--text-primary);
+  background: var(--surface-page);
+  font-size: var(--text-body);
+  line-height: var(--lh-body);
+}
+h1, h2, h3, h4 { font-family: var(--font-sans); margin: 0; }
+a { color: var(--text-link); text-decoration: none; }
+a:hover { color: var(--text-link-hover); text-decoration: underline; }
+button { font-family: var(--font-sans); }
+
+@keyframes kt-shimmer {
+  0% { background-position: -80px 0; }
+  100% { background-position: 80px 0; }
+}

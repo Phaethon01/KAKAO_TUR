@@ -1,0 +1,95 @@
+/* ==========================================================================
+   KAKAO-TUR — Color tokens
+   Primitive scales + semantic aliases.
+   Core brand colors preserved from the original mark: pink/magenta + warm
+   maroon-brown. Everything else (neutrals, status colors) is new — chosen
+   to feel like a serious booking product, not a tourism-agency page.
+   ========================================================================== */
+
+:root {
+  /* ---- Primitive: Pink / Magenta (brand primary — from logo icon) ---- */
+  --pink-50:  #fdf1f5;
+  --pink-100: #fce1eb;
+  --pink-200: #fac0d6;
+  --pink-300: #f694b7;
+  --pink-400: #ed5a91;
+  --pink-500: #e2115c; /* core brand pink, sampled from logo + header nav */
+  --pink-600: #c90f51;
+  --pink-700: #a20d42;
+  --pink-800: #7c0a33;
+  --pink-900: #560724;
+
+  /* ---- Primitive: Maroon / Brown (brand secondary — from wordmark + header) ---- */
+  --maroon-50:  #f6ede9;
+  --maroon-100: #ead4cd;
+  --maroon-200: #d2a89b;
+  --maroon-300: #b67b68;
+  --maroon-400: #99543f;
+  --maroon-500: #6e2420; /* core warm maroon-brown, blended from wordmark + header bg */
+  --maroon-600: #5e1e1b;
+  --maroon-700: #4a1815;
+  --maroon-800: #38120f;
+  --maroon-900: #240a09;
+
+  /* ---- Primitive: Warm neutrals (new — replaces old dark-brown tourism bg) ---- */
+  --neutral-0:   #ffffff;
+  --neutral-50:  #faf8f7;
+  --neutral-100: #f3efec;
+  --neutral-200: #e6dfda;
+  --neutral-300: #d3c8c1;
+  --neutral-400: #ab9d94;
+  --neutral-500: #857a73;
+  --neutral-600: #63594f;
+  --neutral-700: #4a4038;
+  --neutral-800: #322b25;
+  --neutral-900: #1c1714;
+
+  /* ---- Primitive: Status (new — for seat/booking states) ---- */
+  --green-500: #1e8e5a;  /* seat available / success */
+  --green-100: #e1f3ea;
+  --amber-500: #c67c14;  /* pending / hold */
+  --amber-100: #faf0dd;
+  --red-500:   #c23b2e;  /* seat taken / error */
+  --red-100:   #fbe8e5;
+
+  /* ---- Semantic: surfaces ---- */
+  --surface-page:    var(--neutral-50);
+  --surface-card:     var(--neutral-0);
+  --surface-sunken:  var(--neutral-100);
+  --surface-inverse: var(--maroon-900);
+  --surface-brand:   var(--pink-500);
+
+  /* ---- Semantic: text ---- */
+  --text-primary:   var(--neutral-900);
+  --text-secondary: var(--neutral-600);
+  --text-tertiary:  var(--neutral-500);
+  --text-inverse:   var(--neutral-0);
+  --text-brand:     var(--pink-600);
+  --text-link:      var(--pink-600);
+  --text-link-hover: var(--pink-700);
+
+  /* ---- Semantic: borders ---- */
+  --border-subtle:  var(--neutral-200);
+  --border-default: var(--neutral-300);
+  --border-strong:  var(--maroon-500);
+  --border-focus:   var(--pink-500);
+
+  /* ---- Semantic: brand + interactive ---- */
+  --brand-primary:        var(--pink-500);
+  --brand-primary-hover:  var(--pink-600);
+  --brand-primary-active: var(--pink-700);
+  --brand-secondary:        var(--maroon-500);
+  --brand-secondary-hover:  var(--maroon-600);
+  --brand-secondary-active: var(--maroon-700);
+
+  /* ---- Semantic: status ---- */
+  --status-success:     var(--green-500);
+  --status-success-bg:  var(--green-100);
+  --status-warning:     var(--amber-500);
+  --status-warning-bg:  var(--amber-100);
+  --status-error:       var(--red-500);
+  --status-error-bg:    var(--red-100);
+
+  /* ---- Focus ring ---- */
+  --focus-ring: 0 0 0 3px rgba(226, 17, 92, 0.25);
+}
