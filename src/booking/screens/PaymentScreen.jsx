@@ -5,13 +5,7 @@ import { useIsMobile } from '../useIsMobile.js';
 import { useBooking } from '../BookingContext.jsx';
 import { useModals } from '../ModalContext.jsx';
 import { HoldTimer } from '../Chrome.jsx';
-
-// Trust-signal row of accepted payment methods (neutral typographic chips —
-// exact brand logos are trademarked artwork; swap in licensed assets if provided).
-const PAYMENT_METHODS = [
-  'E-POS (ЕРИП)', 'Visa', 'Visa Secure', 'Mastercard', 'Mastercard ID Check',
-  'БЕЛКАРТ', 'БЕЛКАРТ Интернет-Пароль', 'Я Pay', 'Apple Pay', 'Samsung Pay', 'Альфа Банк',
-];
+import { PaymentIcons } from '../PaymentIcons.jsx';
 
 export function PaymentScreen() {
   const isMobile = useIsMobile();
@@ -75,16 +69,7 @@ export function PaymentScreen() {
           <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: 'var(--ls-wide)', fontWeight: 'var(--fw-semibold)', marginBottom: 12 }}>
             Принимаем к оплате
           </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-            {PAYMENT_METHODS.map(m => (
-              <span key={m} style={{
-                display: 'inline-flex', alignItems: 'center', padding: '6px 12px',
-                borderRadius: 'var(--radius-full)', border: '1px solid var(--border-subtle)',
-                background: 'var(--surface-sunken)', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-medium)',
-                color: 'var(--text-secondary)', whiteSpace: 'nowrap',
-              }}>{m}</span>
-            ))}
-          </div>
+          <PaymentIcons />
         </div>
       </div>
 

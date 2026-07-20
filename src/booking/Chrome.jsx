@@ -4,6 +4,7 @@ import { Logo } from '../design-system/index.js';
 import { useIsMobile } from './useIsMobile.js';
 import { useModals } from './ModalContext.jsx';
 import { CONTACTS } from './data/contacts.js';
+import { PaymentIcons } from './PaymentIcons.jsx';
 
 export function Header() {
   const isMobile = useIsMobile();
@@ -120,10 +121,15 @@ export function Footer() {
             <a key={c.label} href={c.href} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--neutral-100)' }}>{c.label}</a>
           ))}
         </div>
-        <div style={{ fontSize: 'var(--text-sm)', color: 'var(--neutral-300)', display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <span>Оплата: карта, ЕРИП</span>
+        <div style={{ fontSize: 'var(--text-sm)', color: 'var(--neutral-300)', display: 'flex', flexDirection: 'column', gap: 10, maxWidth: 260 }}>
           <span>Электронный билет на телефон</span>
           <a href="#" onClick={(e) => { e.preventDefault(); openTerms(); }} style={{ color: 'var(--neutral-100)' }}>Условия возврата и обмена</a>
+          <div>
+            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--neutral-400)', textTransform: 'uppercase', letterSpacing: 'var(--ls-wide)', display: 'block', marginBottom: 8 }}>Способы оплаты</span>
+            <div style={{ background: 'var(--surface-card)', borderRadius: 'var(--radius-md)', padding: '10px 12px' }}>
+              <PaymentIcons height={18} />
+            </div>
+          </div>
         </div>
       </div>
     </footer>
