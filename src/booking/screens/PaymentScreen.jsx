@@ -3,6 +3,7 @@ import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { Button, Radio } from '../../design-system/index.js';
 import { useIsMobile } from '../useIsMobile.js';
 import { useBooking } from '../BookingContext.jsx';
+import { useModals } from '../ModalContext.jsx';
 import { HoldTimer } from '../Chrome.jsx';
 
 // Trust-signal row of accepted payment methods (neutral typographic chips —
@@ -16,6 +17,7 @@ export function PaymentScreen() {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const { trip, selectedSeats, method, setMethod } = useBooking();
+  const { openTerms } = useModals();
   const [searchParams] = useSearchParams();
   // ?decline=1 previews the "payment declined" edge state on the first attempt —
   // there is no real payment gateway wired up yet, so this keeps that designed
@@ -100,7 +102,7 @@ export function PaymentScreen() {
             {processing ? 'Обработка платежа…' : `Оплатить ${selectedSeats.length * trip.price} BYN`}
           </Button>
           <div style={{ textAlign: 'center', marginTop: 12 }}>
-            <a href="#" style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', textDecoration: 'underline' }}>Условия возврата и обмена</a>
+            <a href="#" onClick={(e) => { e.preventDefault(); openTerms(); }} style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', textDecoration: 'underline' }}>Условия возврата и обмена</a>
           </div>
         </div>
       </div>

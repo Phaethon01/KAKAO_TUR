@@ -2,11 +2,19 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Logo } from '../design-system/index.js';
 import { useIsMobile } from './useIsMobile.js';
+import { useModals } from './ModalContext.jsx';
+import { CONTACTS } from './data/contacts.js';
 
 export function Header() {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
+  const { openInfo, openContacts } = useModals();
   const goHome = () => navigate('/');
+  const NAV_ACTIONS = {
+    search: goHome,
+    info: openInfo,
+    contacts: openContacts,
+  };
   return (
     <header style={{
       background: 'var(--surface-card)', borderBottom: '1px solid var(--border-subtle)',
@@ -22,7 +30,7 @@ export function Header() {
         {!isMobile ? (
           <nav style={{ display: 'flex', gap: 28 }}>
             {[['search', 'Билеты'], ['info', 'Информация'], ['contacts', 'Контакты']].map(([key, label]) => (
-              <span key={key} onClick={goHome} style={{
+              <span key={key} onClick={NAV_ACTIONS[key]} style={{
                 fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-medium)',
                 color: key === 'search' ? 'var(--brand-primary)' : 'var(--text-secondary)',
                 cursor: 'pointer',
@@ -93,6 +101,7 @@ export function HoldTimer() {
 }
 
 export function Footer() {
+  const { openTerms } = useModals();
   return (
     <footer style={{ background: 'var(--maroon-900)', color: 'var(--neutral-100)', marginTop: 64 }}>
       <div style={{
@@ -107,14 +116,14 @@ export function Footer() {
         </div>
         <div style={{ fontSize: 'var(--text-sm)', color: 'var(--neutral-300)', display: 'flex', flexDirection: 'column', gap: 8 }}>
           <span style={{ fontSize: 'var(--text-xs)', color: 'var(--neutral-400)', textTransform: 'uppercase', letterSpacing: 'var(--ls-wide)', marginBottom: 2 }}>Связаться с нами</span>
-          <a href="#" style={{ color: 'var(--neutral-100)' }}>Telegram</a>
-          <a href="#" style={{ color: 'var(--neutral-100)' }}>Instagram</a>
-          <a href="#" style={{ color: 'var(--neutral-100)' }}>Viber</a>
+          {CONTACTS.map(c => (
+            <a key={c.label} href={c.href} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--neutral-100)' }}>{c.label}</a>
+          ))}
         </div>
         <div style={{ fontSize: 'var(--text-sm)', color: 'var(--neutral-300)', display: 'flex', flexDirection: 'column', gap: 6 }}>
           <span>Оплата: карта, ЕРИП</span>
           <span>Электронный билет на телефон</span>
-          <a href="#" style={{ color: 'var(--neutral-100)' }}>Условия возврата и обмена</a>
+          <a href="#" onClick={(e) => { e.preventDefault(); openTerms(); }} style={{ color: 'var(--neutral-100)' }}>Условия возврата и обмена</a>
         </div>
       </div>
     </footer>

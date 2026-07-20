@@ -1,6 +1,10 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { BookingProvider } from './booking/BookingContext.jsx';
+import { ModalProvider, useModals } from './booking/ModalContext.jsx';
 import { Header, Footer, BookingSteps } from './booking/Chrome.jsx';
+import { InfoDialog } from './booking/modals/InfoDialog.jsx';
+import { ContactsDialog } from './booking/modals/ContactsDialog.jsx';
+import { TermsDialog } from './booking/modals/TermsDialog.jsx';
 import { SearchScreen } from './booking/screens/SearchScreen.jsx';
 import { ResultsScreen } from './booking/screens/ResultsScreen.jsx';
 import { SeatSelectionScreen } from './booking/screens/SeatSelectionScreen.jsx';
@@ -9,6 +13,17 @@ import { PaymentScreen } from './booking/screens/PaymentScreen.jsx';
 import { ConfirmationScreen } from './booking/screens/ConfirmationScreen.jsx';
 
 const STEP_BY_PATH = { '/results': 0, '/seats': 1, '/checkout': 2, '/payment': 3 };
+
+function ModalHost() {
+  const { open, close } = useModals();
+  return (
+    <>
+      <InfoDialog open={open === 'info'} onClose={close} />
+      <ContactsDialog open={open === 'contacts'} onClose={close} />
+      <TermsDialog open={open === 'terms'} onClose={close} />
+    </>
+  );
+}
 
 function Layout() {
   const location = useLocation();
@@ -29,6 +44,7 @@ function Layout() {
         </Routes>
       </main>
       <Footer />
+      <ModalHost />
     </div>
   );
 }
@@ -36,7 +52,9 @@ function Layout() {
 export default function App() {
   return (
     <BookingProvider>
-      <Layout />
+      <ModalProvider>
+        <Layout />
+      </ModalProvider>
     </BookingProvider>
   );
 }

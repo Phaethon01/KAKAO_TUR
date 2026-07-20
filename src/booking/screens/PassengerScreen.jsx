@@ -3,6 +3,7 @@ import { Navigate, useNavigate } from 'react-router-dom';
 import { Button, Input, Checkbox } from '../../design-system/index.js';
 import { useIsMobile } from '../useIsMobile.js';
 import { useBooking } from '../BookingContext.jsx';
+import { useModals } from '../ModalContext.jsx';
 import { HoldTimer } from '../Chrome.jsx';
 
 function BorderWarning() {
@@ -37,6 +38,7 @@ export function PassengerScreen() {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const { trip, selectedSeats, passenger, updatePassenger } = useBooking();
+  const { openTerms } = useModals();
 
   if (!trip) return <Navigate to="/results" replace />;
 
@@ -73,7 +75,7 @@ export function PassengerScreen() {
           </div>
           <Button variant="primary" fullWidth onClick={() => navigate('/payment')}>Перейти к оплате</Button>
           <div style={{ textAlign: 'center', marginTop: 12 }}>
-            <a href="#" style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', textDecoration: 'underline' }}>Условия возврата и обмена</a>
+            <a href="#" onClick={(e) => { e.preventDefault(); openTerms(); }} style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', textDecoration: 'underline' }}>Условия возврата и обмена</a>
           </div>
         </div>
       </div>
