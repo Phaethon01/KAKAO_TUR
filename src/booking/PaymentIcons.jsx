@@ -9,13 +9,18 @@ import SamsungPay from '../design-system/assets/payments/SamsungPay.png';
 import Visa from '../design-system/assets/payments/Visa.png';
 import VisaSecure from '../design-system/assets/payments/VisaSecure.png';
 
+// Multi-line lockups (a small badge of text stacked in 2-3 rows) go
+// illegible at the shared row height — bump just these to ~1.5x so the
+// text inside them stays readable, still center-aligned against the rest.
+const TALL = 1.5;
+
 const ICONS = [
   { src: Visa, alt: 'Visa' },
-  { src: VisaSecure, alt: 'Visa Secure' },
+  { src: VisaSecure, alt: 'Visa Secure', scale: TALL },
   { src: MasterCard, alt: 'Mastercard' },
   { src: MasterCardID, alt: 'Mastercard ID Check' },
-  { src: BelCard, alt: 'БЕЛКАРТ' },
-  { src: BelCardPassword, alt: 'БЕЛКАРТ Интернет-Пароль' },
+  { src: BelCard, alt: 'БЕЛКАРТ', scale: TALL },
+  { src: BelCardPassword, alt: 'БЕЛКАРТ Интернет-Пароль', scale: TALL },
   { src: ApplePay, alt: 'Apple Pay' },
   { src: SamsungPay, alt: 'Samsung Pay' },
   { src: AlfaBank, alt: 'Альфа Банк' },
@@ -34,7 +39,7 @@ export function PaymentIcons({ height = 28 }) {
           src={icon.src}
           alt={icon.alt}
           title={icon.alt}
-          style={{ height, width: 'auto', objectFit: 'contain', display: 'block' }}
+          style={{ height: height * (icon.scale || 1), width: 'auto', objectFit: 'contain', display: 'block' }}
         />
       ))}
       {TEXT_ONLY.map(label => (
