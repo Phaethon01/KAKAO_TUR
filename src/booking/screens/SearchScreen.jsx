@@ -56,7 +56,7 @@ export function SearchScreen() {
           display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr auto', gap: 16, alignItems: 'end',
         }}>
           <Field label="Дата отправления">
-            <CalendarField value={form.date} onPick={(label) => { setForm({ date: label }); onSearch(); }} />
+            <CalendarField value={form.date} onPick={(label, dateISO) => { setForm({ date: label, dateISO }); onSearch(); }} />
           </Field>
           <button onClick={onSearch} style={{
             height: 46, padding: '0 28px', border: 'none', borderRadius: 'var(--radius-md)',

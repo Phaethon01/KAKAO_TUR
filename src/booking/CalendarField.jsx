@@ -195,7 +195,9 @@ export function CalendarField({ value, onPick }) {
           onSelect={(d) => {
             setSel(d);
             setOpen(false);
-            onPick(`${d.day} ${d.month === 7 ? 'июля' : 'августа'} 2026`);
+            const label = `${d.day} ${d.month === 7 ? 'июля' : 'августа'} 2026`;
+            const iso = `2026-${String(d.month).padStart(2, '0')}-${String(d.day).padStart(2, '0')}`;
+            onPick(label, iso);
           }}
         />
       ) : null}

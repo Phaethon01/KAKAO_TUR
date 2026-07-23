@@ -26,13 +26,19 @@ function inWindow(depart, f) {
 export function ResultsScreen() {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
-  const { trips, filter, setFilter, form, setTrip } = useBooking();
+  const { trips, tripsStatus, tripsError, runSearch, filter, setFilter, form, setTrip } = useBooking();
   const [searchParams] = useSearchParams();
-  // ?empty=1 previews the "no trips on this date" edge state designed for the
-  // route — the demo data has no naturally sold-out date, so this stays reachable.
+  // ?empty=1 forces the "no trips on this date" edge state regardless of what
+  // the API actually returned — useful for previewing/QA-ing that state on
+  // demand rather than hunting for a date that happens to be sold out.
   const noTripsForDate = searchParams.get('empty') === '1';
   const [sort, setSort] = React.useState('time');
   const [cur, setCur] = React.useState('BYN');
+
+  React.useEffect(() => {
+    runSearch(form.dateISO);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.dateISO]);
 
   const date = form.date;
   const allTrips = noTripsForDate ? [] : trips;
@@ -109,7 +115,11 @@ export function ResultsScreen() {
           <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', marginBottom: 12 }}>Цены в ₽ указаны справочно по курсу — оплата производится в BYN.</div>
         ) : <div style={{ marginBottom: 12 }}></div>}
 
-        {sorted.length === 0 ? (
+        {tripsStatus === 'loading' || tripsStatus === 'idle' ? (
+          <LoadingState />
+        ) : tripsStatus === 'error' ? (
+          <ErrorState onRetry={() => runSearch(form.dateISO)} />
+        ) : sorted.length === 0 ? (
           <EmptyState filter={filter} date={date} onReset={() => setFilter(null)} />
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -204,6 +214,35 @@ function EmptyState({ filter, date = '17 июля 2026', onReset }) {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function LoadingState() {
+  return (
+    <div style={{
+      background: 'var(--surface-card)', border: '1px solid var(--border-subtle)',
+      borderRadius: 'var(--radius-lg)', padding: '48px 28px', textAlign: 'center',
+      color: 'var(--text-secondary)', fontSize: 'var(--text-sm)',
+    }}>
+      Ищем рейсы…
+    </div>
+  );
+}
+
+function ErrorState({ onRetry }) {
+  return (
+    <div style={{
+      background: 'var(--surface-card)', border: '1px solid var(--border-subtle)',
+      borderRadius: 'var(--radius-lg)', padding: '48px 28px', textAlign: 'center',
+    }}>
+      <div style={{ fontSize: 'var(--text-h3)', fontWeight: 'var(--fw-bold)', marginBottom: 6 }}>
+        Не удалось загрузить рейсы
+      </div>
+      <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-sm)', maxWidth: 380, margin: '0 auto 20px' }}>
+        Проверьте соединение и попробуйте ещё раз.
+      </p>
+      <Button variant="outline" onClick={onRetry}>Повторить</Button>
     </div>
   );
 }
