@@ -30,6 +30,26 @@ export function BookingProvider({ children }) {
       setTripsStatus('success');
     } catch (err) {
       if (id !== searchId.current) return;
+
+      // TEMP DEV FALLBACK — only in dev builds, so a real outage in
+      // production still shows the real error state instead of quietly
+      // letting people "book" seats on fake trips. Remove this block once
+      // the CORS issue is fixed server-side (see searchTrips.js TODO).
+      // Dynamic import so the mock data never ships in the production
+      // bundle at all, not just never runs.
+      if (import.meta.env.DEV) {
+        console.warn(
+          '%c[searchTrips] FALLBACK DATA IN USE — the real API call failed, so the results screen is showing static mock trips from src/booking/data/trips.js instead. This is NOT live data.',
+          'color:#a15c00; font-weight:bold;',
+        );
+        console.warn('[searchTrips] original error that triggered the fallback:', err);
+        const { TRIPS } = await import('./data/trips.js');
+        if (id !== searchId.current) return;
+        setTrips(TRIPS);
+        setTripsStatus('success');
+        return;
+      }
+
       setTripsError(err);
       setTripsStatus('error');
     }
