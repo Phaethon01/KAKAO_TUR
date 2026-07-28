@@ -51,10 +51,16 @@ function mapTripToUiShape(raw) {
     arriveStation: raw.reis_address_b,
     price: Number(raw.price?.BYN?.cost ?? 0),
     seatsLeft: raw.reis_free_place ?? 0,
-    // Real seat numbers/ids the API reports as available. Not consumed yet —
-    // SeatSelectionScreen still renders its own synthetic 44-seat layout —
-    // but kept here so wiring it up later doesn't need another API pass.
-    seatMap: raw.place,
+    // Total physical seats on the bus. Any seat number in [1, capacity] not
+    // present in `freeSeats` is occupied — see freeSeats below.
+    capacity: Number(raw.countPlaceBus ?? raw.bus?.autobus_place ?? 0),
+    // Currently free/sellable seats, keyed by seat number (string) -> real
+    // backend { id, number }. Confirmed by inspecting a real response: this
+    // object's entry count exactly matched reis_free_place, so it's the
+    // free-seat list, not a full seat map — any seat number from 1 to
+    // `capacity` missing here is sold/unavailable. The `id` (not the visible
+    // number) is what a real reservation call would need.
+    freeSeats: raw.place ?? {},
   };
 }
 

@@ -49,7 +49,7 @@ export function ConfirmationScreen() {
         <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: 6 }}>
           <span>Перевозчик: {trip.operator}</span>
           <span>Пассажир: {passenger.first || 'Иван'} {passenger.last || 'Иванов'}</span>
-          <span>Места: {selectedSeats.join(', ')}</span>
+          <span>Места: {selectedSeats.map(s => s.number).join(', ')}</span>
         </div>
       </div>
 

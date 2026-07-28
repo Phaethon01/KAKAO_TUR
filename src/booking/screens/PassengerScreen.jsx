@@ -68,7 +68,7 @@ export function PassengerScreen() {
           <div style={{ fontWeight: 'var(--fw-bold)', fontSize: 'var(--text-lg)', marginBottom: 14 }}>Ваш заказ</div>
           <HoldTimer />
           <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', marginBottom: 8 }}>{trip.depart} → {trip.arrive}</div>
-          <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', marginBottom: 18 }}>Места: {selectedSeats.join(', ')}</div>
+          <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', marginBottom: 18 }}>Места: {selectedSeats.map(s => s.number).join(', ')}</div>
           <div style={{ height: 1, background: 'var(--border-subtle)', margin: '14px 0' }} />
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-h3)', fontWeight: 'var(--fw-bold)', marginBottom: 20 }}>
             <span>Итого</span><span style={{ color: 'var(--brand-primary)' }}>{selectedSeats.length * trip.price} BYN</span>

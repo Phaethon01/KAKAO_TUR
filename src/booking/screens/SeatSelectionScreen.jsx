@@ -4,7 +4,24 @@ import { Button, Badge } from '../../design-system/index.js';
 import { useIsMobile } from '../useIsMobile.js';
 import { useBooking } from '../BookingContext.jsx';
 
-const TAKEN = new Set([3, 7, 12, 18, 22]);
+// PLACEHOLDER SEAT LAYOUT — pending the real seat-numbering/row scheme from
+// the carrier (Visit Tour/Intercars). We know which seat *numbers* are free
+// (trip.freeSeats, confirmed against a real response: its entry count
+// exactly matches reis_free_place) and the bus's total capacity
+// (trip.capacity), but not how those numbers map to physical position on
+// the bus — front/back, left/right, whether the back row is wider, etc.
+// Until that's known, seats are laid out as a generic 2+2 coach grid,
+// numbered row-major left-to-right, with any capacity not divisible by 4
+// filling out a shorter final row. This is a one-line swap once the real
+// layout is available: replace `seatId`/the row-building loop below with
+// whatever the actual scheme turns out to be.
+function buildRows(capacity) {
+  const rows = [];
+  for (let start = 1; start <= capacity; start += 4) {
+    rows.push([start, start + 1, start + 2, start + 3].filter(n => n <= capacity));
+  }
+  return rows;
+}
 
 export function SeatSelectionScreen() {
   const isMobile = useIsMobile();
@@ -13,8 +30,7 @@ export function SeatSelectionScreen() {
 
   if (!trip) return <Navigate to="/results" replace />;
 
-  const rows = 11;
-  const seatId = (row, col) => row * 4 + col + 1;
+  const rows = buildRows(trip.capacity);
 
   return (
     <div style={{ maxWidth: 'var(--container-max)', margin: '0 auto', padding: '32px 24px 64px', display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'minmax(0, 1fr) 320px', gap: isMobile ? 20 : 32 }}>
@@ -66,11 +82,15 @@ export function SeatSelectionScreen() {
             border: '2px solid var(--border-default)', borderTop: 'none', borderRadius: '0 0 14px 14px',
             padding: '18px 16px 16px',
           }}>
-            {Array.from({ length: rows }).map((_, row) => (
-              <div key={row} style={{ display: 'flex', gap: 10 }}>
-                {[0, 1].map(col => <Seat key={col} id={seatId(row, col)} selected={selectedSeats} onToggleSeat={toggleSeat} />)}
-                <div style={{ width: 20 }} />
-                {[2, 3].map(col => <Seat key={col} id={seatId(row, col)} selected={selectedSeats} onToggleSeat={toggleSeat} />)}
+            {rows.map((rowNumbers, i) => (
+              <div key={i} style={{ display: 'flex', gap: 10 }}>
+                {rowNumbers.slice(0, 2).map(n => (
+                  <Seat key={n} number={n} trip={trip} selected={selectedSeats} onToggleSeat={toggleSeat} />
+                ))}
+                {rowNumbers.length > 2 ? <div style={{ width: 20 }} /> : null}
+                {rowNumbers.slice(2, 4).map(n => (
+                  <Seat key={n} number={n} trip={trip} selected={selectedSeats} onToggleSeat={toggleSeat} />
+                ))}
               </div>
             ))}
           </div>
@@ -90,7 +110,7 @@ export function SeatSelectionScreen() {
             {trip.depart} — {trip.arrive}, {trip.operator}
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 18 }}>
-            {selectedSeats.length === 0 ? <Badge tone="neutral">Места не выбраны</Badge> : selectedSeats.map(s => <Badge key={s} tone="brand">Место {s}</Badge>)}
+            {selectedSeats.length === 0 ? <Badge tone="neutral">Места не выбраны</Badge> : selectedSeats.map(s => <Badge key={s.number} tone="brand">Место {s.number}</Badge>)}
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-body)', marginBottom: 6 }}>
             <span style={{ color: 'var(--text-secondary)' }}>{selectedSeats.length} × {trip.price} BYN</span>
@@ -107,9 +127,10 @@ export function SeatSelectionScreen() {
   );
 }
 
-function Seat({ id, selected, onToggleSeat }) {
-  const isTaken = TAKEN.has(id);
-  const isSelected = selected.includes(id);
+function Seat({ number, trip, selected, onToggleSeat }) {
+  const free = trip.freeSeats[String(number)];
+  const isTaken = !free;
+  const isSelected = selected.some(s => s.number === number);
 
   const base = {
     width: 40, height: 40, borderRadius: 9, fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)',
@@ -126,12 +147,12 @@ function Seat({ id, selected, onToggleSeat }) {
   }
 
   return (
-    <button disabled={isTaken} onClick={() => onToggleSeat(id)} style={style}>
+    <button disabled={isTaken} onClick={() => onToggleSeat({ number, id: free.id })} style={style}>
       {isTaken ? (
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
           <path d="M18 6 6 18M6 6l12 12" />
         </svg>
-      ) : id}
+      ) : number}
     </button>
   );
 }

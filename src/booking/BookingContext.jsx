@@ -60,8 +60,14 @@ export function BookingProvider({ children }) {
     }
   }, []);
 
-  const toggleSeat = React.useCallback((id) => {
-    setSelectedSeats(seats => seats.includes(id) ? seats.filter(x => x !== id) : [...seats, id]);
+  // seat: { number, id } — the real backend id is what a reservation call
+  // needs, not just the visible seat number, so both travel together.
+  const toggleSeat = React.useCallback((seat) => {
+    setSelectedSeats(seats =>
+      seats.some(s => s.number === seat.number)
+        ? seats.filter(s => s.number !== seat.number)
+        : [...seats, seat],
+    );
   }, []);
 
   const updatePassenger = React.useCallback((key, value) => {
