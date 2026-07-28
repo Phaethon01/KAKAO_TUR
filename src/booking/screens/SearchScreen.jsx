@@ -5,7 +5,7 @@ import { useIsMobile } from '../useIsMobile.js';
 import { useBooking } from '../BookingContext.jsx';
 import { CalendarField } from '../CalendarField.jsx';
 import { getTripsForDate } from '../tripsCache.js';
-import { todayDate, toISO, monthShort, weekdayShort } from '../today.js';
+import { todayDate, toISO, monthShort, weekdayShort, formatRussianDateShort } from '../today.js';
 
 // Forward-looking dates only — the real current date through the next 6
 // days. Computed once at module load (i.e. as of page load); a tab left
@@ -63,12 +63,31 @@ function useDateStripPrices(dates) {
   return prices;
 }
 
-// Today's departures with live seat counts.
-const TODAY_TRIPS = [
-  { time: '08:00', operator: 'Visit Tour', seatsLeft: 12, price: 40 },
-  { time: '13:15', operator: 'Intercars', seatsLeft: 3, price: 42 },
-  { time: '22:00', operator: 'Visit Tour', seatsLeft: 0, price: 48 },
-];
+// Today's departures with live seat counts — fetched for the real current
+// date, going through the same tripsCache as the strip/calendar/results
+// screen, so this is typically already cached (BookingContext's default
+// search date is today) rather than an extra request.
+function useTodayTrips() {
+  const [state, setState] = React.useState({ status: 'loading', trips: [] });
+
+  React.useEffect(() => {
+    let cancelled = false;
+    const todayIso = toISO(todayDate());
+    getTripsForDate(todayIso)
+      .then(trips => {
+        if (cancelled) return;
+        setState({ status: 'success', trips: [...trips].sort((a, b) => a.depart.localeCompare(b.depart)) });
+      })
+      .catch(err => {
+        if (cancelled) return;
+        console.error('[SearchScreen] failed to load today\'s departures', err);
+        setState({ status: 'error', trips: [] });
+      });
+    return () => { cancelled = true; };
+  }, []);
+
+  return state;
+}
 
 export function SearchScreen() {
   const isMobile = useIsMobile();
@@ -176,21 +195,30 @@ export function SearchScreen() {
 }
 
 function TodayTrips() {
+  const { status, trips } = useTodayTrips();
+  const todayLabel = React.useMemo(() => formatRussianDateShort(todayDate()), []);
+
   return (
     <div style={{ marginTop: 40 }}>
       <div style={{ fontWeight: 'var(--fw-bold)', fontSize: 'var(--text-h3)', marginBottom: 4 }}>Рейсы сегодня</div>
-      <div style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-sm)', marginBottom: 16 }}>17 июля — актуальное наличие мест</div>
+      <div style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-sm)', marginBottom: 16 }}>{todayLabel} — актуальное наличие мест</div>
       <div style={{
         background: 'var(--surface-card)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-subtle)',
         overflow: 'hidden',
       }}>
-        {TODAY_TRIPS.map((t, i) => (
-          <div key={t.time} style={{
+        {status === 'loading' ? (
+          <div style={{ padding: '20px', color: 'var(--text-secondary)', fontSize: 'var(--text-sm)' }}>Загрузка…</div>
+        ) : status === 'error' ? (
+          <div style={{ padding: '20px', color: 'var(--text-secondary)', fontSize: 'var(--text-sm)' }}>Не удалось загрузить рейсы на сегодня.</div>
+        ) : trips.length === 0 ? (
+          <div style={{ padding: '20px', color: 'var(--text-secondary)', fontSize: 'var(--text-sm)' }}>На сегодня рейсов не найдено.</div>
+        ) : trips.map((t, i) => (
+          <div key={t.id} style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             padding: '16px 20px', borderTop: i === 0 ? 'none' : '1px solid var(--border-subtle)',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
-              <span style={{ fontSize: 'var(--text-h3)', fontWeight: 'var(--fw-bold)', minWidth: 60 }}>{t.time}</span>
+              <span style={{ fontSize: 'var(--text-h3)', fontWeight: 'var(--fw-bold)', minWidth: 60 }}>{t.depart}</span>
               <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-tertiary)' }}>{t.operator}</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>

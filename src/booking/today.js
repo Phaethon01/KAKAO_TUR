@@ -28,9 +28,15 @@ export function toISO(date) {
   return `${y}-${m}-${d}`;
 }
 
-// "17 июля 2026"
+// e.g. "5 сентября 2026"
 export function formatRussianDate(date) {
   return `${date.getDate()} ${MONTH_GENITIVE[date.getMonth()]} ${date.getFullYear()}`;
+}
+
+// e.g. "5 сентября" — no year, for copy that reads oddly with one
+// ("Все места на 5 сентября распроданы").
+export function formatRussianDateShort(date) {
+  return `${date.getDate()} ${MONTH_GENITIVE[date.getMonth()]}`;
 }
 
 export function monthShort(monthIndex0) {

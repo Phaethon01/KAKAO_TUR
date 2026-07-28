@@ -197,7 +197,7 @@ function EmptyState({ filter, date, onReset }) {
       <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-sm)', maxWidth: 380, margin: '0 auto 20px' }}>
         {filter
           ? 'Попробуйте другое время отправления или сбросьте фильтр.'
-          : `Все места на ${date.replace(' 2026', '')} распроданы. Посмотрите соседние даты — там ещё есть билеты.`}
+          : `Все места на ${date.replace(/ \d{4}$/, '')} распроданы. Посмотрите соседние даты — там ещё есть билеты.`}
       </p>
       {filter ? (
         <Button variant="outline" onClick={onReset}>Сбросить фильтр</Button>
