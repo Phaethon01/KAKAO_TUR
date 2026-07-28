@@ -4,17 +4,65 @@ import { Icon, Badge } from '../../design-system/index.js';
 import { useIsMobile } from '../useIsMobile.js';
 import { useBooking } from '../BookingContext.jsx';
 import { CalendarField } from '../CalendarField.jsx';
+import { getTripsForDate } from '../tripsCache.js';
 
-// Forward-looking dates only — today (17 июля) through the next 6 days.
-const DATES = [
-  { label: 'Сегодня, 17 июл', price: 40, active: true },
-  { label: 'Сб 18 июл', price: 45 },
-  { label: 'Вс 19 июл', price: 45 },
-  { label: 'Пн 20 июл', price: 38 },
-  { label: 'Вт 21 июл', price: 40 },
-  { label: 'Ср 22 июл', price: 45 },
-  { label: 'Чт 23 июл', price: 51 },
-];
+// Forward-looking dates only — today (17 июля, the app's fixed "today" —
+// see BookingContext's DEFAULT_FORM) through the next 6 days.
+const RANGE_ANCHOR_ISO = '2026-07-17';
+const MONTH_SHORT = { 7: 'июл', 8: 'авг' };
+const WEEKDAY_SHORT = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб']; // index = Date#getDay()
+
+function buildDateRange() {
+  const start = new Date(`${RANGE_ANCHOR_ISO}T00:00:00`);
+  const dates = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(start);
+    d.setDate(d.getDate() + i);
+    const iso = d.toISOString().slice(0, 10);
+    const label = i === 0
+      ? `Сегодня, ${d.getDate()} ${MONTH_SHORT[d.getMonth() + 1]}`
+      : `${WEEKDAY_SHORT[d.getDay()]} ${d.getDate()} ${MONTH_SHORT[d.getMonth() + 1]}`;
+    dates.push({ iso, label });
+  }
+  return dates;
+}
+
+const DATE_RANGE = buildDateRange();
+
+function cheapestFare(trips) {
+  const withSeats = trips.filter(t => t.seatsLeft > 0);
+  if (withSeats.length === 0) return null; // sold out
+  return Math.min(...withSeats.map(t => t.price));
+}
+
+// Fetches a real price per date in the 7-day range, independently and in
+// parallel — each cell reveals its price as soon as its own request
+// resolves rather than waiting on the slowest one. Goes through the same
+// tripsCache the results screen uses, so a date already priced here isn't
+// re-fetched when the user picks it, and vice versa.
+function useDateStripPrices(dates) {
+  const [prices, setPrices] = React.useState({}); // iso -> 'loading' | number | null
+
+  React.useEffect(() => {
+    let cancelled = false;
+    setPrices(Object.fromEntries(dates.map(d => [d.iso, 'loading'])));
+    dates.forEach(({ iso }) => {
+      getTripsForDate(iso)
+        .then(trips => {
+          if (cancelled) return;
+          setPrices(prev => ({ ...prev, [iso]: cheapestFare(trips) }));
+        })
+        .catch(err => {
+          if (cancelled) return;
+          console.error(`[SearchScreen] failed to load price for ${iso}`, err);
+          setPrices(prev => ({ ...prev, [iso]: null }));
+        });
+    });
+    return () => { cancelled = true; };
+  }, [dates]);
+
+  return prices;
+}
 
 // Today's departures with live seat counts.
 const TODAY_TRIPS = [
@@ -27,7 +75,8 @@ export function SearchScreen() {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const { form, setForm } = useBooking();
-  const [activeDate, setActiveDate] = React.useState(DATES[0].label);
+  const [activeDateIso, setActiveDateIso] = React.useState(DATE_RANGE[0].iso);
+  const stripPrices = useDateStripPrices(DATE_RANGE);
 
   function onSearch() {
     navigate('/results');
@@ -73,17 +122,28 @@ export function SearchScreen() {
           background: 'var(--surface-card)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-subtle)',
           marginTop: 14, padding: '14px 16px', display: 'flex', gap: 10, overflowX: 'auto',
         }}>
-          {DATES.map(d => {
-            const isActive = d.label === activeDate;
+          {DATE_RANGE.map(d => {
+            const isActive = d.iso === activeDateIso;
+            const priceState = stripPrices[d.iso];
             return (
-              <button key={d.label} onClick={() => setActiveDate(d.label)} style={{
+              <button key={d.iso} onClick={() => setActiveDateIso(d.iso)} style={{
                 flex: '0 0 auto', minWidth: 110, padding: '10px 14px', borderRadius: 'var(--radius-md)',
                 border: `1.5px solid ${isActive ? 'var(--brand-primary)' : 'var(--border-subtle)'}`,
                 background: isActive ? 'var(--pink-50)' : 'transparent',
                 cursor: 'pointer', fontFamily: 'var(--font-sans)', textAlign: 'left',
               }}>
                 <div style={{ fontSize: 'var(--text-xs)', color: isActive ? 'var(--pink-700)' : 'var(--text-tertiary)', fontWeight: 'var(--fw-medium)' }}>{d.label}</div>
-                <div style={{ fontSize: 'var(--text-body)', fontWeight: 'var(--fw-bold)', color: isActive ? 'var(--pink-600)' : 'var(--text-primary)', marginTop: 2 }}>{d.price} BYN</div>
+                {priceState === 'loading' || priceState === undefined ? (
+                  <div style={{
+                    height: 16, width: 52, marginTop: 4, borderRadius: 4,
+                    background: 'linear-gradient(90deg, var(--neutral-100) 25%, var(--neutral-200) 50%, var(--neutral-100) 75%)',
+                    backgroundSize: '80px 100%', animation: 'kt-shimmer 1.1s linear infinite',
+                  }} />
+                ) : priceState === null ? (
+                  <div style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-medium)', color: 'var(--text-tertiary)', marginTop: 2 }}>нет мест</div>
+                ) : (
+                  <div style={{ fontSize: 'var(--text-body)', fontWeight: 'var(--fw-bold)', color: isActive ? 'var(--pink-600)' : 'var(--text-primary)', marginTop: 2 }}>{priceState} BYN</div>
+                )}
               </button>
             );
           })}

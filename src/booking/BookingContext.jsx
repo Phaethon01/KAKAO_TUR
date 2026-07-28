@@ -1,5 +1,5 @@
 import React from 'react';
-import { searchTrips } from './searchTrips.js';
+import { getTripsForDate } from './tripsCache.js';
 
 const BookingContext = React.createContext(null);
 
@@ -24,7 +24,7 @@ export function BookingProvider({ children }) {
     setTripsStatus('loading');
     setTripsError(null);
     try {
-      const results = await searchTrips(dateISO);
+      const results = await getTripsForDate(dateISO);
       if (id !== searchId.current) return; // a newer search superseded this one
       setTrips(results);
       setTripsStatus('success');
