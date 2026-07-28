@@ -5,23 +5,22 @@ import { useIsMobile } from '../useIsMobile.js';
 import { useBooking } from '../BookingContext.jsx';
 import { CalendarField } from '../CalendarField.jsx';
 import { getTripsForDate } from '../tripsCache.js';
+import { todayDate, toISO, monthShort, weekdayShort } from '../today.js';
 
-// Forward-looking dates only — today (17 июля, the app's fixed "today" —
-// see BookingContext's DEFAULT_FORM) through the next 6 days.
-const RANGE_ANCHOR_ISO = '2026-07-17';
-const MONTH_SHORT = { 7: 'июл', 8: 'авг' };
-const WEEKDAY_SHORT = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб']; // index = Date#getDay()
-
+// Forward-looking dates only — the real current date through the next 6
+// days. Computed once at module load (i.e. as of page load); a tab left
+// open across midnight won't roll the date without a refresh, same as most
+// web apps.
 function buildDateRange() {
-  const start = new Date(`${RANGE_ANCHOR_ISO}T00:00:00`);
+  const start = todayDate();
   const dates = [];
   for (let i = 0; i < 7; i++) {
     const d = new Date(start);
     d.setDate(d.getDate() + i);
-    const iso = d.toISOString().slice(0, 10);
+    const iso = toISO(d);
     const label = i === 0
-      ? `Сегодня, ${d.getDate()} ${MONTH_SHORT[d.getMonth() + 1]}`
-      : `${WEEKDAY_SHORT[d.getDay()]} ${d.getDate()} ${MONTH_SHORT[d.getMonth() + 1]}`;
+      ? `Сегодня, ${d.getDate()} ${monthShort(d.getMonth())}`
+      : `${weekdayShort(d)} ${d.getDate()} ${monthShort(d.getMonth())}`;
     dates.push({ iso, label });
   }
   return dates;

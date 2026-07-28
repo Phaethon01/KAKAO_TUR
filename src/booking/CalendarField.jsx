@@ -1,43 +1,77 @@
 import React from 'react';
 import { useIsMobile } from './useIsMobile.js';
+import { getTripsForDate } from './tripsCache.js';
+import { todayDate, toISO, monthNominative, formatRussianDate } from './today.js';
 
 // Smart price calendar for the "Дата отправления" field.
 // Prices load progressively (never blocks): loaded → price, sold out → «нет мест»,
 // not yet loaded → shimmer. Cheapest visible price highlighted green;
 // selected date outlined brand pink; past dates greyed and inert.
 
-const TODAY = 17; // 17 июля 2026
-const MONTHS = [
-  { name: 'Июль 2026', num: 7, days: 31, offset: 2 },   // 1 июля — среда
-  { name: 'Август 2026', num: 8, days: 31, offset: 5 }, // 1 августа — суббота
-];
 const WEEKDAYS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 
-// Deterministic demo pricing: some dates sold out, prices 38–52 BYN.
-function priceFor(month, day) {
-  const seed = (month * 37 + day * 13) % 17;
-  if (seed === 3) return null; // sold out / no trips
-  return 38 + ((month * 7 + day * 5) % 15);
+// Current month + next month, computed from the real date — never hardcoded.
+function buildMonths(today) {
+  const months = [];
+  for (let i = 0; i < 2; i++) {
+    const first = new Date(today.getFullYear(), today.getMonth() + i, 1);
+    const year = first.getFullYear();
+    const monthIndex0 = first.getMonth();
+    const daysInMonth = new Date(year, monthIndex0 + 1, 0).getDate();
+    const offset = (first.getDay() + 6) % 7; // Monday-first column offset
+    months.push({ year, monthIndex0, daysInMonth, offset, name: `${monthNominative(monthIndex0)} ${year}` });
+  }
+  return months;
 }
 
-function useProgressivePrices(open) {
-  // key "m-d" -> { price } once "loaded"; absent while loading (shimmer)
-  const [loaded, setLoaded] = React.useState({});
+function isoFor(month, day) {
+  return toISO(new Date(month.year, month.monthIndex0, day));
+}
+
+// Fetches real per-day prices for whichever month(s) are actually visible —
+// both, on desktop (shown side by side, always); just the one currently
+// paged to, on mobile, so paging to the second month is what triggers
+// fetching it rather than loading both ~30-day months upfront. Either way,
+// concurrency is capped: a 2-month grid is up to ~60 dates, and firing all
+// of them at an external API simultaneously isn't reasonable.
+const FETCH_CONCURRENCY = 6;
+
+function useDayPrices(visibleMonths) {
+  const [loaded, setLoaded] = React.useState({}); // iso -> { price: number | null }
+
   React.useEffect(() => {
-    if (!open) return;
-    const timers = [];
-    MONTHS.forEach(m => {
-      for (let d = 1; d <= m.days; d++) {
-        if (m.num === 7 && d < TODAY) continue;
-        const key = `${m.num}-${d}`;
-        const delay = 150 + ((m.num * 31 + d * 17) % 20) * 90; // staggered 150–1950ms
-        timers.push(setTimeout(() => {
-          setLoaded(prev => prev[key] ? prev : { ...prev, [key]: { price: priceFor(m.num, d) } });
-        }, delay));
+    let cancelled = false;
+    const today = todayDate();
+    const isos = [];
+    visibleMonths.forEach(m => {
+      for (let d = 1; d <= m.daysInMonth; d++) {
+        if (new Date(m.year, m.monthIndex0, d) < today) continue; // past — never fetched
+        isos.push(isoFor(m, d));
       }
     });
-    return () => timers.forEach(clearTimeout);
-  }, [open]);
+
+    let cursor = 0;
+    async function worker() {
+      while (cursor < isos.length) {
+        const iso = isos[cursor++];
+        try {
+          const trips = await getTripsForDate(iso);
+          if (cancelled) return;
+          const withSeats = trips.filter(t => t.seatsLeft > 0);
+          const price = withSeats.length ? Math.min(...withSeats.map(t => t.price)) : null;
+          setLoaded(prev => prev[iso] ? prev : { ...prev, [iso]: { price } });
+        } catch (err) {
+          if (cancelled) return;
+          console.error(`[CalendarField] failed to load price for ${iso}`, err);
+          setLoaded(prev => prev[iso] ? prev : { ...prev, [iso]: { price: null } });
+        }
+      }
+    }
+    Array.from({ length: Math.min(FETCH_CONCURRENCY, isos.length) }, worker);
+
+    return () => { cancelled = true; };
+  }, [visibleMonths]);
+
   return loaded;
 }
 
@@ -49,10 +83,15 @@ function navBtn(disabled) {
   };
 }
 
-function PriceCalendar({ selected, onSelect, onClose }) {
+function PriceCalendar({ selectedIso, onSelect, onClose }) {
   const isMobile = useIsMobile();
   const [mobileMonth, setMobileMonth] = React.useState(0);
-  const loaded = useProgressivePrices(true);
+  const months = React.useMemo(() => buildMonths(todayDate()), []);
+  const visibleMonths = React.useMemo(
+    () => isMobile ? [months[mobileMonth]] : months,
+    [isMobile, mobileMonth, months],
+  );
+  const loaded = useDayPrices(visibleMonths);
   const ref = React.useRef(null);
 
   React.useEffect(() => {
@@ -61,12 +100,10 @@ function PriceCalendar({ selected, onSelect, onClose }) {
     return () => document.removeEventListener('mousedown', onDoc);
   }, [onClose]);
 
-  const visibleMonths = isMobile ? [MONTHS[mobileMonth]] : MONTHS;
   const visiblePrices = [];
   visibleMonths.forEach(m => {
-    for (let d = 1; d <= m.days; d++) {
-      if (m.num === 7 && d < TODAY) continue;
-      const entry = loaded[`${m.num}-${d}`];
+    for (let d = 1; d <= m.daysInMonth; d++) {
+      const entry = loaded[isoFor(m, d)];
       if (entry && entry.price != null) visiblePrices.push(entry.price);
     }
   });
@@ -82,13 +119,13 @@ function PriceCalendar({ selected, onSelect, onClose }) {
       {isMobile ? (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
           <button onClick={() => setMobileMonth(0)} disabled={mobileMonth === 0} style={navBtn(mobileMonth === 0)}>‹</button>
-          <span style={{ fontWeight: 'var(--fw-bold)', fontSize: 'var(--text-sm)' }}>{MONTHS[mobileMonth].name}</span>
+          <span style={{ fontWeight: 'var(--fw-bold)', fontSize: 'var(--text-sm)' }}>{months[mobileMonth].name}</span>
           <button onClick={() => setMobileMonth(1)} disabled={mobileMonth === 1} style={navBtn(mobileMonth === 1)}>›</button>
         </div>
       ) : null}
       <div style={{ display: 'flex', gap: 28 }}>
         {visibleMonths.map(m => (
-          <Month key={m.num} month={m} loaded={loaded} cheapest={cheapest} selected={selected} onSelect={onSelect} showName={!isMobile} />
+          <Month key={`${m.year}-${m.monthIndex0}`} month={m} loaded={loaded} cheapest={cheapest} selectedIso={selectedIso} onSelect={onSelect} showName={!isMobile} />
         ))}
       </div>
       <div style={{ display: 'flex', gap: 16, marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--border-subtle)', fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', flexWrap: 'wrap' }}>
@@ -99,10 +136,10 @@ function PriceCalendar({ selected, onSelect, onClose }) {
   );
 }
 
-function Month({ month, loaded, cheapest, selected, onSelect, showName }) {
+function Month({ month, loaded, cheapest, selectedIso, onSelect, showName }) {
   const cells = [];
   for (let i = 0; i < month.offset; i++) cells.push(null);
-  for (let d = 1; d <= month.days; d++) cells.push(d);
+  for (let d = 1; d <= month.daysInMonth; d++) cells.push(d);
 
   return (
     <div style={{ flex: 1 }}>
@@ -115,19 +152,19 @@ function Month({ month, loaded, cheapest, selected, onSelect, showName }) {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2 }}>
         {cells.map((d, i) => d === null
           ? <div key={`e${i}`}></div>
-          : <DayCell key={d} month={month} day={d} loaded={loaded} cheapest={cheapest} selected={selected} onSelect={onSelect} />)}
+          : <DayCell key={d} month={month} day={d} loaded={loaded} cheapest={cheapest} selectedIso={selectedIso} onSelect={onSelect} />)}
       </div>
     </div>
   );
 }
 
-function DayCell({ month, day, loaded, cheapest, selected, onSelect }) {
-  const isPast = month.num === 7 && day < TODAY;
-  const key = `${month.num}-${day}`;
-  const entry = loaded[key];
+function DayCell({ month, day, loaded, cheapest, selectedIso, onSelect }) {
+  const iso = isoFor(month, day);
+  const isPast = new Date(month.year, month.monthIndex0, day) < todayDate();
+  const entry = loaded[iso];
   const price = entry ? entry.price : undefined;
   const soldOut = entry && price == null;
-  const isSelected = selected && selected.month === month.num && selected.day === day;
+  const isSelected = selectedIso === iso;
   const isCheapest = entry && price != null && price === cheapest;
   const [hover, setHover] = React.useState(false);
 
@@ -142,7 +179,7 @@ function DayCell({ month, day, loaded, cheapest, selected, onSelect }) {
 
   return (
     <button
-      onClick={() => !soldOut && entry && onSelect({ month: month.num, day, price })}
+      onClick={() => !soldOut && entry && onSelect({ iso, day, price })}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       title={soldOut ? 'нет мест' : undefined}
@@ -172,7 +209,7 @@ function DayCell({ month, day, loaded, cheapest, selected, onSelect }) {
 
 export function CalendarField({ value, onPick }) {
   const [open, setOpen] = React.useState(false);
-  const [sel, setSel] = React.useState(null);
+  const [selectedIso, setSelectedIso] = React.useState(null);
   return (
     <div style={{ position: 'relative' }}>
       <button onClick={() => setOpen(o => !o)} style={{
@@ -190,13 +227,13 @@ export function CalendarField({ value, onPick }) {
       </button>
       {open ? (
         <PriceCalendar
-          selected={sel}
+          selectedIso={selectedIso}
           onClose={() => setOpen(false)}
-          onSelect={(d) => {
-            setSel(d);
+          onSelect={({ iso }) => {
+            setSelectedIso(iso);
             setOpen(false);
-            const label = `${d.day} ${d.month === 7 ? 'июля' : 'августа'} 2026`;
-            const iso = `2026-${String(d.month).padStart(2, '0')}-${String(d.day).padStart(2, '0')}`;
+            const [y, m, d] = iso.split('-').map(Number);
+            const label = formatRussianDate(new Date(y, m - 1, d));
             onPick(label, iso);
           }}
         />

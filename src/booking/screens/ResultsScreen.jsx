@@ -176,7 +176,7 @@ export function ResultsScreen() {
   );
 }
 
-function EmptyState({ filter, date = '17 июля 2026', onReset }) {
+function EmptyState({ filter, date, onReset }) {
   return (
     <div style={{
       background: 'var(--surface-card)', border: '1px solid var(--border-subtle)',

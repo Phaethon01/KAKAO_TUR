@@ -1,13 +1,18 @@
 import React from 'react';
 import { getTripsForDate } from './tripsCache.js';
+import { todayDate, toISO, formatRussianDate } from './today.js';
 
 const BookingContext = React.createContext(null);
 
 const EMPTY_PASSENGER = { first: '', last: '', middle: '', phone: '', email: '' };
-const DEFAULT_FORM = { date: '17 июля 2026', dateISO: '2026-07-17' };
+
+function buildDefaultForm() {
+  const today = todayDate();
+  return { date: formatRussianDate(today), dateISO: toISO(today) };
+}
 
 export function BookingProvider({ children }) {
-  const [form, setForm] = React.useState(DEFAULT_FORM);
+  const [form, setForm] = React.useState(buildDefaultForm);
   const [filter, setFilter] = React.useState(null);
   const [trip, setTrip] = React.useState(null);
   const [selectedSeats, setSelectedSeats] = React.useState([]);
